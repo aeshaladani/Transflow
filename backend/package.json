@@ -1,6 +1,7 @@
 {
-  "name": "iiit-bus-backend",
+  "name": "trans-flow-backend",
   "version": "1.0.0",
+  "description": "Trans-Flow Bus Management System - Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -18,5 +19,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
