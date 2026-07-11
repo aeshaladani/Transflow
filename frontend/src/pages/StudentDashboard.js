@@ -159,10 +159,6 @@ const StudentDashboard = () => {
     setShowBookingModal(true);
   };
 
-  // Check if a date is available for booking
-  const isDateAvailable = (dateStr) => {
-    return availableDates.includes(dateStr);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">

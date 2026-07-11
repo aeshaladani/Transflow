@@ -4,7 +4,7 @@ import { busAPI, bookingAPI, complaintAPI } from '../utils/api';
 import { toast } from 'react-toastify';
 import { 
   Bus, Users, Calendar, MessageSquare, Plus, Edit2, 
-  Trash2, LogOut, X, CheckCircle, AlertTriangle 
+  Trash2, LogOut, X
 } from 'lucide-react';
 
 const AdminDashboard = () => {
