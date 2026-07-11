@@ -17,7 +17,7 @@ connectDB();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://transflow-l2c0tygie-aeshas-projects-53daff14.vercel.app'
+    'https://transflow-three.vercel.app'
   ],
   credentials: true
 }));
