@@ -43,7 +43,7 @@ const Register = () => {
         <div className="text-center mb-8">
           <Bus className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-800">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join IIIT Vadodara Bus System</p>
+          <p className="text-gray-600 mt-2">Join TransFlow</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -31,8 +31,8 @@ const Login = () => {
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
           <Bus className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800">IIIT Vadodara</h1>
-          <p className="text-gray-600 mt-2">Bus Management System</p>
+          <h1 className="text-3xl font-bold text-gray-800">TransFlow</h1>
+          {/* <p className="text-gray-600 mt-2">Bus Management System</p> */}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -47,7 +47,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="student@iiitvadodara.ac.in"
+                placeholder="Enter your email"
                 required
               />
             </div>
@@ -86,12 +86,7 @@ const Login = () => {
           </Link>
         </p>
 
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 font-semibold mb-2">Test Accounts:</p>
-          <p className="text-xs text-gray-600">Admin: admin@iiitvadodara.ac.in / admin123</p>
-          <p className="text-xs text-gray-600">Student: student@iiitvadodara.ac.in / student123</p>
-          <p className="text-xs text-gray-600">Driver: driver@iiitvadodara.ac.in / driver123</p>
-        </div>
+       
       </div>
     </div>
   );
