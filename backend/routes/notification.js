@@ -19,37 +19,29 @@ router.get('/my-notifications', protect, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-// Send departure notification - UPDATED to only send to today's passengers
 router.post('/departure', protect, authorize('driver', 'admin'), async (req, res) => {
   try {
     const { busId } = req.body;
-    
+
     if (!busId) {
       return res.status(400).json({ message: 'Bus ID is required' });
     }
 
-    // Get TODAY's date (start and end of day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // Find bookings ONLY for today for this specific bus
+
     const bookings = await Booking.find({
       bus: busId,
-      bookingDate: { 
-        $gte: today,
-        $lt: tomorrow
-      },
+      bookingDate: { $gte: today, $lt: tomorrow },
       status: 'confirmed'
     })
     .populate('bus')
     .populate('student', 'name email phone');
-    
+
     if (bookings.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'No passengers booked for today on this bus',
         recipientCount: 0
       });
@@ -57,23 +49,25 @@ router.post('/departure', protect, authorize('driver', 'admin'), async (req, res
 
     const userIds = bookings.map(b => b.student._id);
     const bus = bookings[0].bus;
-    
-    // Create notification only for today's passengers
+
     const notification = await Notification.create({
       users: userIds,
       bus: busId,
       message: `🚌 DEPARTURE ALERT: Bus ${bus.busNumber} (${bus.route}) will depart in 5 minutes from ${bus.from}. Please be ready!`,
       type: 'departure'
     });
-    
+
+    // NEW: push this instantly to every connected passenger via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      userIds.forEach(userId => {
+        io.to(userId.toString()).emit('newNotification', notification);
+      });
+    }
+
     res.status(201).json({
       message: 'Notification sent successfully',
       recipientCount: userIds.length,
-      recipients: bookings.map(b => ({
-        name: b.student.name,
-        email: b.student.email,
-        seatNumber: b.seatNumber
-      })),
       date: today.toDateString()
     });
   } catch (error) {

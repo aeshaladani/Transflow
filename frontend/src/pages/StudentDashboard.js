@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { io } from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
 import { busAPI, bookingAPI, complaintAPI, notificationAPI, contactAPI } from '../utils/api';
 import { toast } from 'react-toastify';
@@ -17,6 +18,7 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('buses');
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [seatInfo, setSeatInfo] = useState(null);
   const [selectedBus, setSelectedBus] = useState(null);
   const [bookingDate, setBookingDate] = useState('');
   const [availableDates, setAvailableDates] = useState([]);
@@ -27,9 +29,36 @@ const StudentDashboard = () => {
     category: 'other'
   });
 
+  
   useEffect(() => {
-    fetchData();
-  }, []);
+  const socket = io(process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000');
+
+  socket.on('connect', () => {
+    socket.emit('register', user._id);
+  });
+
+  socket.on('newNotification', (notification) => {
+    setNotifications(prev => [notification, ...prev]);
+    toast.info(notification.message, { autoClose: 8000 });
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [user._id]);
+
+  useEffect(() => {
+      fetchData();
+    }, []);
+    useEffect(() => {
+    if (selectedBus && bookingDate) {
+      busAPI.checkSeatsForDate(selectedBus._id, bookingDate)
+        .then(res => setSeatInfo(res.data))
+        .catch(() => setSeatInfo(null));
+    } else {
+      setSeatInfo(null);
+    }
+  }, [selectedBus, bookingDate]); 
 
   const fetchData = async () => {
     try {
@@ -54,22 +83,23 @@ const StudentDashboard = () => {
   // Get next 30 days that match bus operating days
   const getAvailableDatesForBus = (bus) => {
     if (!bus.daysOfOperation || bus.daysOfOperation.length === 0) {
-      return []; // No operating days set
+      return [];
     }
 
     const dates = [];
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); // normalize to local midnight
 
-    // Check next 60 days
     for (let i = 0; i < 60; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      
+      const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-      
+
       if (bus.daysOfOperation.includes(dayName)) {
-        dates.push(date.toISOString().split('T')[0]);
+        // Build YYYY-MM-DD manually from LOCAL components - avoids UTC shift bugs
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
       }
     }
 
@@ -237,43 +267,34 @@ const StudentDashboard = () => {
                             Bus #{bus.busNumber}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {bus.availableSeats}/{bus.totalSeats} seats available
-                          </span>
-                        </div>
-                        
-                        {/* Operating Days */}
-                        <div className="mt-3">
-                          <p className="text-xs font-semibold text-gray-700 mb-1">Operating Days:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {bus.daysOfOperation && bus.daysOfOperation.length > 0 ? (
-                              bus.daysOfOperation.map(day => (
-                                <span key={day} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
-                                  {day}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-xs text-red-600">No operating days set</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-indigo-600 h-2 rounded-full transition-all" 
-                            style={{width: `${((bus.totalSeats - bus.availableSeats) / bus.totalSeats) * 100}%`}}
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => openBookingModal(bus)}
-                        disabled={bus.availableSeats === 0 || !bus.daysOfOperation || bus.daysOfOperation.length === 0}
-                        className="ml-4 bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 disabled:bg-gray-400 transition"
-                      >
-                        {bus.availableSeats === 0 ? 'Full' : 
-                         (!bus.daysOfOperation || bus.daysOfOperation.length === 0) ? 'Not Available' : 
-                         'Book Seat'}
-                      </button>
+                <Users className="w-4 h-4" />
+                Capacity: {bus.totalSeats} seats
+              </span>
+            </div>
+            
+            {/* Operating Days */}
+            <div className="mt-3">
+              <p className="text-xs font-semibold text-gray-700 mb-1">Operating Days:</p>
+              <div className="flex flex-wrap gap-1">
+                {bus.daysOfOperation && bus.daysOfOperation.length > 0 ? (
+                  bus.daysOfOperation.map(day => (
+                    <span key={day} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                      {day}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-red-600">No operating days set</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => openBookingModal(bus)}
+            disabled={!bus.daysOfOperation || bus.daysOfOperation.length === 0}
+            className="ml-4 bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 disabled:bg-gray-400 transition"
+          >
+            {(!bus.daysOfOperation || bus.daysOfOperation.length === 0) ? 'Not Available' : 'Book Seat'}
+          </button>
                     </div>
                   </div>
                 ))}
@@ -468,20 +489,28 @@ const StudentDashboard = () => {
                   })
                 )}
               </select>
-              {availableDates.length === 0 && (
-                <p className="text-xs text-red-600 mt-1">
-                  No dates available. Bus operating days may not be set.
-                </p>
-              )}
-            </div>
+                {availableDates.length === 0 && (
+            <p className="text-xs text-red-600 mt-1">
+              No dates available. Bus operating days may not be set.
+            </p>
+          )}
+        </div>
 
-            <button
-              onClick={handleBookSeat}
-              disabled={!bookingDate || availableDates.length === 0}
-              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              Confirm Booking
-            </button>
+        {seatInfo && (
+          <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm font-semibold text-green-800">
+              🪑 {seatInfo.availableSeats} / {seatInfo.totalSeats} seats available on this date
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={handleBookSeat}
+          disabled={!bookingDate || !seatInfo || seatInfo.availableSeats <= 0}
+          className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {seatInfo && seatInfo.availableSeats <= 0 ? 'Full for this date' : 'Confirm Booking'}
+        </button>
           </div>
         </div>
       )}

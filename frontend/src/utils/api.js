@@ -32,6 +32,7 @@ export const busAPI = {
   updateBus: (id, busData) => api.put(`/buses/${id}`, busData),
   deleteBus: (id) => api.delete(`/buses/${id}`),
   checkDemand: (route, date) => api.get('/buses/demand/check', { params: { route, date } }),
+  checkSeatsForDate: (busId, date) => api.get(`/buses/${busId}/seats`, { params: { date } }),
 };
 
 // Booking APIs
